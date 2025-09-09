@@ -1,11 +1,9 @@
-name: Auto Update Worker
-
 on:
   push:
     branches:
       - main
   schedule:
-    - cron: "0 3 * * *" # 每天凌晨 3 点触发，但实际更新根据间隔天数判断
+    - cron: "0 3 1 * *"  # 每月 1 号凌晨 3 点触发更新
   workflow_dispatch:     # 支持手动运行
 
 permissions:
@@ -18,36 +16,7 @@ jobs:
       - name: 初始化仓库
         uses: actions/checkout@v4
 
-      - name: 判断是否到达更新间隔
-        id: check_interval
-        run: |
-          INTERVAL_DAYS=20   # 设置间隔天数，可以改成 10、15、20 等
-          TODAY=$(date +%s)
-
-          if [ -f last_update.txt ]; then
-            LAST_UPDATE=$(cat last_update.txt)
-            DIFF_DAYS=$(( (TODAY - LAST_UPDATE) / 86400 ))
-            echo "上次更新时间戳: $LAST_UPDATE"
-            echo "当前时间戳: $TODAY"
-            echo "距离上次更新天数: $DIFF_DAYS"
-          else
-            echo "首次运行，允许更新"
-            DIFF_DAYS=$((INTERVAL_DAYS + 1))
-          fi
-
-          if [ "$DIFF_DAYS" -ge "$INTERVAL_DAYS" ]; then
-            echo "达到更新间隔，可以更新"
-            echo "INTERVAL_OK=true" >> $GITHUB_ENV
-          else
-            echo "未到更新间隔，跳过更新"
-            echo "INTERVAL_OK=false" >> $GITHUB_ENV
-
-      - name: 输出 INTERVAL_OK 值
-        run: |
-          echo "INTERVAL_OK=${{ env.INTERVAL_OK }}"
-
       - name: 获取当前本地版本
-        if: env.INTERVAL_OK == 'true'
         id: get_local_version
         run: |
           echo -e "\033[34m[获取本地版本]\033[0m"
@@ -61,7 +30,6 @@ jobs:
           echo "LOCAL_VERSION=$LOCAL_VERSION" >> $GITHUB_ENV
 
       - name: 获取最新 Release 信息
-        if: env.INTERVAL_OK == 'true'
         id: get_release
         run: |
           echo -e "\033[34m[获取最新 Release]\033[0m"
@@ -81,7 +49,6 @@ jobs:
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
 
       - name: 判断是否需要更新
-        if: env.INTERVAL_OK == 'true'
         id: check_update
         run: |
           echo -e "\033[34m[判断是否需要更新]\033[0m"
@@ -94,7 +61,7 @@ jobs:
           fi
 
       - name: 如果需要，清理旧文件并下载新版本
-        if: env.INTERVAL_OK == 'true' && env.UPDATE_NEEDED == 'true'
+        if: env.UPDATE_NEEDED == 'true'
         run: |
           echo -e "\033[34m[清理旧文件]\033[0m"
           rm -rf ./*
@@ -106,11 +73,9 @@ jobs:
           rm worker.zip
           echo -e "\033[34m[记录新版本号]\033[0m"
           echo "$TAG_NAME" > version.txt
-          echo -e "\033[34m[记录更新时间]\033[0m"
-          date +%s > last_update.txt
 
       - name: 提交更改
-        if: env.INTERVAL_OK == 'true' && env.UPDATE_NEEDED == 'true'
+        if: env.UPDATE_NEEDED == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "🔄 自动同步最新 Worker 版本：${{ env.TAG_NAME }}"
