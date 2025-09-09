@@ -85,19 +85,17 @@ jobs:
           else
             echo -e "\033[33m发现新版本，需要更新！\033[0m"
             echo "UPDATE_NEEDED=true" >> $GITHUB_ENV
+          fi
 
       - name: 如果需要，清理旧文件并下载新版本
         if: env.INTERVAL_OK == 'true' && env.UPDATE_NEEDED == 'true'
         run: |
           echo -e "\033[34m[清理旧文件]\033[0m"
-          # 只删除 worker.zip 和解压的文件
-          rm -f worker.zip
-          rm -rf worker  # 假设解压后是一个名为 "worker" 的文件夹，具体路径根据实际情况修改
-
+          rm -rf ./*
           echo -e "\033[34m[下载最新 worker.zip]\033[0m"
           wget -O worker.zip "$DOWNLOAD_URL"
           echo -e "\033[34m[解压 worker.zip]\033[0m"
-          unzip worker.zip -d worker  # 解压到 worker 文件夹
+          unzip worker.zip
           echo -e "\033[34m[删除 worker.zip]\033[0m"
           rm worker.zip
           echo -e "\033[34m[记录新版本号]\033[0m"
