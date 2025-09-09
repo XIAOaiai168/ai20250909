@@ -27,18 +27,24 @@ jobs:
           if [ -f last_update.txt ]; then
             LAST_UPDATE=$(cat last_update.txt)
             DIFF_DAYS=$(( (TODAY - LAST_UPDATE) / 86400 ))
+            echo "上次更新时间戳: $LAST_UPDATE"
+            echo "当前时间戳: $TODAY"
+            echo "距离上次更新天数: $DIFF_DAYS"
           else
             echo "首次运行，允许更新"
             DIFF_DAYS=$((INTERVAL_DAYS + 1))
           fi
 
-          echo "距离上次更新天数: $DIFF_DAYS"
           if [ "$DIFF_DAYS" -ge "$INTERVAL_DAYS" ]; then
             echo "达到更新间隔，可以更新"
             echo "INTERVAL_OK=true" >> $GITHUB_ENV
           else
             echo "未到更新间隔，跳过更新"
             echo "INTERVAL_OK=false" >> $GITHUB_ENV
+
+      - name: 输出 INTERVAL_OK 值
+        run: |
+          echo "INTERVAL_OK=${{ env.INTERVAL_OK }}"
 
       - name: 获取当前本地版本
         if: env.INTERVAL_OK == 'true'
